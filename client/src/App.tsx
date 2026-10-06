@@ -1,7 +1,22 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Dashboard from './pages/Dashboard'
+
 export default function App() {
   return (
-    <div className="min-h-screen bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 flex items-center justify-center">
-      <h1 className="text-3xl font-bold">Task Manager</h1>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Dashboard />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
