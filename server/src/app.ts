@@ -1,3 +1,4 @@
+import path from "node:path";
 import express, { type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -26,6 +27,16 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/tasks", taskRoutes);
+
+// In production the API also serves the built client, so the browser sees one origin (first-party cookies).
+if (process.env.NODE_ENV === "production") {
+  const clientDist = path.resolve(import.meta.dirname, "../../client/dist");
+  app.use(express.static(clientDist));
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
