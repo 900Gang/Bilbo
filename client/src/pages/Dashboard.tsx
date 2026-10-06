@@ -18,10 +18,16 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/90 px-4 py-3 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90">
         <h1 className="text-lg font-bold">Task Manager</h1>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="hidden sm:inline">{user?.name}</span>
+        <div className="flex min-w-0 items-center gap-3 text-sm">
+          <span className="hidden max-w-40 truncate sm:inline">{user?.name}</span>
+          <span
+            aria-hidden="true"
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-indigo-600 text-sm font-semibold text-white sm:hidden"
+          >
+            {user?.name?.charAt(0).toUpperCase()}
+          </span>
           <button
             onClick={logout}
             className="rounded-lg border border-slate-300 px-3 py-1 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
@@ -31,12 +37,12 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl p-4">
-        <div className="mb-4 flex items-center justify-between">
+      <main className="mx-auto max-w-6xl p-4 pb-24 sm:pb-4">
+        <div className="mb-4 flex items-center justify-between gap-2">
           <h2 className="text-xl font-semibold">My tasks</h2>
           <button
             onClick={() => setModal('new')}
-            className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
+            className="hidden rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 sm:block"
           >
             + New task
           </button>
@@ -45,7 +51,7 @@ export default function Dashboard() {
         {banner && (
           <p role="alert" className="mb-4 flex items-center justify-between rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
             {banner}
-            <button onClick={() => setBanner('')} aria-label="Dismiss" className="ml-2 font-bold">
+            <button onClick={() => setBanner('')} aria-label="Dismiss" className="ml-2 px-2 font-bold">
               x
             </button>
           </p>
@@ -72,13 +78,21 @@ export default function Dashboard() {
         )}
 
         {tasks && tasks.length > 0 && (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {tasks.map((task) => (
               <TaskCard key={task.id} task={task} onEdit={setModal} onError={setBanner} />
             ))}
           </ul>
         )}
       </main>
+
+      <button
+        onClick={() => setModal('new')}
+        aria-label="New task"
+        className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center rounded-full bg-indigo-600 text-3xl text-white shadow-lg hover:bg-indigo-700 sm:hidden"
+      >
+        +
+      </button>
 
       {modal && (
         <TaskModal
