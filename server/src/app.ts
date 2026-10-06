@@ -4,6 +4,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/auth.js";
+import taskRoutes from "./routes/tasks.js";
 
 export const app = express();
 
@@ -24,6 +25,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/tasks", taskRoutes);
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
