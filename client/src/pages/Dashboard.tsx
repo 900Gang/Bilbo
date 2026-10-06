@@ -1,26 +1,34 @@
 import { useCallback, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { errorMessage } from '../lib/api'
+import { DEFAULT_FILTERS, hasActiveFilters, type Filters } from '../lib/filters'
 import type { Task } from '../lib/types'
+import { useDebounce } from '../hooks/useDebounce'
 import { useTasks } from '../hooks/useTasks'
+import FilterBar from '../components/FilterBar'
 import TaskCard from '../components/TaskCard'
 import TaskModal from '../components/TaskModal'
+import ThemeToggle from '../components/ThemeToggle'
 
 // null = closed, 'new' = create, Task = edit
 type ModalState = null | 'new' | Task
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
-  const { data: tasks, isLoading, error, refetch } = useTasks()
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
+  const debouncedSearch = useDebounce(filters.search, 300)
+  const { data: tasks, isLoading, error, refetch } = useTasks({ ...filters, search: debouncedSearch })
   const [modal, setModal] = useState<ModalState>(null)
   const [banner, setBanner] = useState('')
   const closeModal = useCallback(() => setModal(null), [])
+  const filtered = hasActiveFilters(filters)
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/90 px-4 py-3 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90">
         <h1 className="text-lg font-bold">Task Manager</h1>
         <div className="flex min-w-0 items-center gap-3 text-sm">
+          <ThemeToggle />
           <span className="hidden max-w-40 truncate sm:inline">{user?.name}</span>
           <span
             aria-hidden="true"
@@ -48,6 +56,8 @@ export default function Dashboard() {
           </button>
         </div>
 
+        <FilterBar filters={filters} onChange={setFilters} />
+
         {banner && (
           <p role="alert" className="mb-4 flex items-center justify-between rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
             {banner}
@@ -70,10 +80,24 @@ export default function Dashboard() {
 
         {tasks && tasks.length === 0 && (
           <div className="rounded-xl border-2 border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700">
-            <p className="mb-3">No tasks yet.</p>
-            <button onClick={() => setModal('new')} className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-              Create your first task
-            </button>
+            {filtered ? (
+              <>
+                <p className="mb-3">No tasks match your filters.</p>
+                <button
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  Clear filters
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mb-3">No tasks yet.</p>
+                <button onClick={() => setModal('new')} className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                  Create your first task
+                </button>
+              </>
+            )}
           </div>
         )}
 
