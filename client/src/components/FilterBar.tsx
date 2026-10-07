@@ -15,14 +15,18 @@ const STATUS_TABS: { value: Status | ''; label: string }[] = [
 type Props = {
   filters: Filters
   onChange: (filters: Filters) => void
+  tags: string[]
+  attentionCount: number
 }
 
-export default function FilterBar({ filters, onChange }: Props) {
+export default function FilterBar({ filters, onChange, tags, attentionCount }: Props) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => onChange({ ...filters, [key]: value })
+  // Keep a selected tag in the list even if its last task was just removed or renamed.
+  const tagOptions = filters.tag && !tags.includes(filters.tag) ? [...tags, filters.tag] : tags
 
   return (
     <div className="space-y-3">
-      <div role="group" aria-label="Filter by status" className="-mx-4 flex gap-1 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <div role="group" aria-label="Filter by status" className="-mx-4 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
         {STATUS_TABS.map((tab) => {
           const active = filters.status === tab.value
           return (
@@ -31,7 +35,7 @@ export default function FilterBar({ filters, onChange }: Props) {
               type="button"
               aria-pressed={active}
               onClick={() => set('status', tab.value)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              className={`min-w-14 shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 active ? 'bg-ink text-paper' : 'text-muted hover:bg-line hover:text-ink'
               }`}
             >
@@ -39,6 +43,19 @@ export default function FilterBar({ filters, onChange }: Props) {
             </button>
           )
         })}
+
+        <span aria-hidden="true" className="mx-1 my-1.5 w-px shrink-0 bg-line-strong" />
+
+        <button
+          type="button"
+          aria-pressed={filters.due}
+          onClick={() => set('due', !filters.due)}
+          className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            filters.due ? 'bg-warn text-paper' : 'text-muted hover:bg-line hover:text-ink'
+          }`}
+        >
+          Due or overdue{attentionCount > 0 ? ` (${attentionCount})` : ''}
+        </button>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -68,6 +85,22 @@ export default function FilterBar({ filters, onChange }: Props) {
           ))}
         </select>
 
+        {tagOptions.length > 0 && (
+          <select
+            aria-label="Filter by tag"
+            value={filters.tag}
+            onChange={(e) => set('tag', e.target.value)}
+            className={`${select} flex-1 sm:flex-none`}
+          >
+            <option value="">Any tag</option>
+            {tagOptions.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </select>
+        )}
+
         <select
           aria-label="Sort tasks"
           value={filters.sort}
@@ -84,7 +117,7 @@ export default function FilterBar({ filters, onChange }: Props) {
         {hasActiveFilters(filters) && (
           <button
             type="button"
-            onClick={() => onChange(DEFAULT_FILTERS)}
+            onClick={() => onChange({ ...DEFAULT_FILTERS, sort: filters.sort })}
             className="rounded-lg px-3 py-2 text-sm font-medium text-accent hover:underline"
           >
             Clear filters

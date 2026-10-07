@@ -8,6 +8,8 @@ export type Task = {
   status: Status
   priority: Priority
   dueDate: string | null
+  tags: string[]
+  position: number
   createdAt: string
   updatedAt: string
 }
@@ -18,6 +20,7 @@ export type TaskInput = {
   status: Status
   priority: Priority
   dueDate: string | null
+  tags: string[]
 }
 
 export const STATUS_LABEL: Record<Status, string> = {

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { errorMessage } from '../lib/api'
 import { PRIORITY_LABEL, STATUS_LABEL, type Priority, type Status, type Task } from '../lib/types'
 import { useCreateTask, useUpdateTask } from '../hooks/useTasks'
+import TagInput from './TagInput'
 
 const field =
   'mt-1 w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-ink outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/30'
@@ -9,10 +10,12 @@ const field =
 type Props = {
   task: Task | null
   initialTitle?: string
+  initialTags?: string[]
+  tagSuggestions?: string[]
   onClose: () => void
 }
 
-export default function TaskModal({ task, initialTitle = '', onClose }: Props) {
+export default function TaskModal({ task, initialTitle = '', initialTags = [], tagSuggestions = [], onClose }: Props) {
   const create = useCreateTask()
   const update = useUpdateTask()
   const [title, setTitle] = useState(task?.title ?? initialTitle)
@@ -20,6 +23,7 @@ export default function TaskModal({ task, initialTitle = '', onClose }: Props) {
   const [status, setStatus] = useState<Status>(task?.status ?? 'todo')
   const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium')
   const [dueDate, setDueDate] = useState(task?.dueDate?.slice(0, 10) ?? '')
+  const [tags, setTags] = useState<string[]>(task?.tags ?? initialTags)
   const [error, setError] = useState('')
   const busy = create.isPending || update.isPending
 
@@ -32,7 +36,7 @@ export default function TaskModal({ task, initialTitle = '', onClose }: Props) {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
-    const input = { title, description, status, priority, dueDate: dueDate || null }
+    const input = { title, description, status, priority, dueDate: dueDate || null, tags }
     try {
       if (task) await update.mutateAsync({ id: task.id, ...input })
       else await create.mutateAsync(input)
@@ -93,6 +97,11 @@ export default function TaskModal({ task, initialTitle = '', onClose }: Props) {
           Due date
           <input className={field} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </label>
+
+        <div className="text-sm font-medium">
+          Tags
+          <TagInput value={tags} onChange={setTags} suggestions={tagSuggestions} />
+        </div>
 
         {error && (
           <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">

@@ -11,6 +11,7 @@ export function useTasks(filters: Filters) {
     search: filters.search.trim() || undefined,
     status: filters.status || undefined,
     priority: filters.priority || undefined,
+    tag: filters.tag || undefined,
     sort,
     order,
   }
@@ -71,6 +72,32 @@ export function useDeleteTask() {
       return { prev }
     },
     onError: (_err, _id, ctx) => restore(qc, ctx?.prev),
+    onSettled: () => qc.invalidateQueries({ queryKey: BASE_KEY }),
+  })
+}
+
+// Saves a new manual order. Only the cached lists sorted by "My order" are rearranged optimistically.
+export function useReorderTasks() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      await api.post('/tasks/reorder', { ids })
+    },
+    onMutate: async (ids) => {
+      await qc.cancelQueries({ queryKey: BASE_KEY })
+      const prev = snapshot(qc)
+      qc.setQueriesData<Task[]>(
+        { queryKey: BASE_KEY, predicate: (query) => (query.queryKey[1] as { sort?: string } | undefined)?.sort === 'position' },
+        (old) => {
+          if (!old) return old
+          const byId = new Map(old.map((t) => [t.id, t]))
+          const next = ids.map((id) => byId.get(id)).filter((t): t is Task => !!t)
+          return next.length === old.length ? next : old
+        },
+      )
+      return { prev }
+    },
+    onError: (_err, _ids, ctx) => restore(qc, ctx?.prev),
     onSettled: () => qc.invalidateQueries({ queryKey: BASE_KEY }),
   })
 }

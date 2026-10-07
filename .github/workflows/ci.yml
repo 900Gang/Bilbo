@@ -47,3 +47,41 @@ jobs:
       - run: npx prisma generate
       - run: npm run build
       - run: npx prisma validate
+
+  api-tests:
+    name: API tests (Postgres)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bilbo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bilbo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # A throwaway database that only exists for this job. No secrets are involved.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bilbo_test
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      # Applies every migration to an empty database, which also proves the migrations work from scratch.
+      - run: npx prisma migrate deploy
+      - run: npm test

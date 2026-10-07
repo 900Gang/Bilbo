@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { errorMessage } from '../lib/api'
-import { formatDate, isOverdue } from '../lib/dates'
+import { formatDate, isDueToday, isOverdue } from '../lib/dates'
 import { PRIORITY_LABEL, STATUS_LABEL, type Priority, type Task } from '../lib/types'
 import { useDeleteTask, useUpdateTask } from '../hooks/useTasks'
 import { CheckIcon, PencilIcon, TrashIcon } from './icons'
@@ -14,19 +14,26 @@ const priorityDot: Record<Priority, string> = {
 const iconButton =
   'grid size-8 place-items-center rounded-lg text-muted transition-colors hover:bg-line hover:text-ink'
 
-type Props = {
+export type TaskRowProps = {
   task: Task
   onEdit: (task: Task) => void
   onError: (message: string) => void
+  onTagClick?: (tag: string) => void
+  // Set by SortableTaskRow when the list is in "My order" mode.
+  rowRef?: Ref<HTMLLIElement>
+  rowStyle?: CSSProperties
+  dragging?: boolean
+  handle?: ReactNode
 }
 
-export default function TaskRow({ task, onEdit, onError }: Props) {
+export default function TaskRow({ task, onEdit, onError, onTagClick, rowRef, rowStyle, dragging, handle }: TaskRowProps) {
   const update = useUpdateTask()
   const remove = useDeleteTask()
   const [confirming, setConfirming] = useState(false)
   const done = task.status === 'done'
   const inProgress = task.status === 'in_progress'
   const overdue = isOverdue(task)
+  const dueToday = isDueToday(task)
 
   function toggleDone() {
     update.mutate(
@@ -36,7 +43,15 @@ export default function TaskRow({ task, onEdit, onError }: Props) {
   }
 
   return (
-    <li className="group flex items-start gap-3 border-b border-line px-4 py-3 last:border-b-0">
+    <li
+      ref={rowRef}
+      style={rowStyle}
+      className={`group flex items-start gap-3 border-b border-line bg-surface px-4 py-3 last:border-b-0 ${
+        dragging ? 'relative z-20 rounded-lg border-transparent shadow-lg ring-1 ring-line-strong' : ''
+      }`}
+    >
+      {handle}
+
       <button
         type="button"
         onClick={toggleDone}
@@ -80,13 +95,29 @@ export default function TaskRow({ task, onEdit, onError }: Props) {
             {PRIORITY_LABEL[task.priority]} priority
           </span>
           {task.dueDate && (
-            <span className={overdue ? 'font-medium text-danger' : ''}>
-              {overdue ? 'Overdue, was due ' : 'Due '}
-              {formatDate(task.dueDate)}
+            <span className={overdue ? 'font-medium text-danger' : dueToday ? 'font-medium text-warn' : ''}>
+              {overdue ? 'Overdue, was due ' : dueToday ? 'Due today' : 'Due '}
+              {dueToday ? '' : formatDate(task.dueDate)}
             </span>
           )}
           {inProgress && <span className="font-medium text-accent">{STATUS_LABEL.in_progress}</span>}
         </div>
+
+        {task.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {task.tags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => onTagClick?.(tag)}
+                title={`Show tasks tagged ${tag}`}
+                className="min-h-0 rounded-full bg-line px-2.5 py-0.5 text-xs text-ink transition-colors hover:bg-line-strong"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {confirming ? (
