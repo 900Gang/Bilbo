@@ -1,127 +1,120 @@
 import { useCallback, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { errorMessage } from '../lib/api'
+import { greeting, isOverdue } from '../lib/dates'
 import { DEFAULT_FILTERS, hasActiveFilters, type Filters } from '../lib/filters'
 import type { Task } from '../lib/types'
 import { useDebounce } from '../hooks/useDebounce'
 import { useTasks } from '../hooks/useTasks'
 import FilterBar from '../components/FilterBar'
-import TaskCard from '../components/TaskCard'
+import Logo from '../components/Logo'
+import QuickAdd from '../components/QuickAdd'
 import TaskModal from '../components/TaskModal'
+import TaskRow from '../components/TaskRow'
 import ThemeToggle from '../components/ThemeToggle'
 
-// null = closed, 'new' = create, Task = edit
-type ModalState = null | 'new' | Task
+// null = closed. task null = create (optionally with a title carried over from quick add).
+type ModalState = null | { task: Task | null; title?: string }
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const debouncedSearch = useDebounce(filters.search, 300)
   const { data: tasks, isLoading, error, refetch } = useTasks({ ...filters, search: debouncedSearch })
+  const { data: allTasks } = useTasks(DEFAULT_FILTERS)
   const [modal, setModal] = useState<ModalState>(null)
   const [banner, setBanner] = useState('')
   const closeModal = useCallback(() => setModal(null), [])
   const filtered = hasActiveFilters(filters)
 
+  const open = allTasks?.filter((t) => t.status !== 'done').length ?? 0
+  const overdue = allTasks?.filter(isOverdue).length ?? 0
+  const summary = !allTasks
+    ? ' '
+    : allTasks.length === 0
+      ? 'Your list is empty. Add your first task below.'
+      : open === 0
+        ? 'Everything is done. Nice work.'
+        : `${open} open${overdue > 0 ? `, ${overdue} overdue` : ''}`
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/90 px-4 py-3 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90">
-        <h1 className="text-lg font-bold">Task Manager</h1>
-        <div className="flex min-w-0 items-center gap-3 text-sm">
-          <ThemeToggle />
-          <span className="hidden max-w-40 truncate sm:inline">{user?.name}</span>
-          <span
-            aria-hidden="true"
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-indigo-600 text-sm font-semibold text-white sm:hidden"
-          >
-            {user?.name?.charAt(0).toUpperCase()}
-          </span>
-          <button
-            onClick={logout}
-            className="rounded-lg border border-slate-300 px-3 py-1 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
-          >
-            Log out
-          </button>
+    <div className="min-h-screen bg-paper font-sans text-ink">
+      <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3">
+          <Logo />
+          <div className="flex items-center gap-1 text-sm">
+            <ThemeToggle />
+            <span className="mx-2 hidden max-w-40 truncate text-muted sm:inline">{user?.name}</span>
+            <button onClick={logout} className="rounded-lg px-3 py-1.5 text-muted hover:bg-line hover:text-ink">
+              Log out
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl p-4 pb-24 sm:pb-4">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-xl font-semibold">My tasks</h2>
-          <button
-            onClick={() => setModal('new')}
-            className="hidden rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 sm:block"
-          >
-            + New task
-          </button>
+      <main className="mx-auto max-w-3xl px-4 pt-8 pb-16">
+        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+          {greeting()}, {user?.name?.split(' ')[0]}
+        </h1>
+        <p className="mt-1 min-h-6 text-muted">{summary}</p>
+
+        <div className="mt-6 space-y-5">
+          <QuickAdd onDetails={(title) => setModal({ task: null, title })} onError={setBanner} />
+          <FilterBar filters={filters} onChange={setFilters} />
+
+          {banner && (
+            <p role="alert" className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+              {banner}
+              <button onClick={() => setBanner('')} className="ml-3 font-medium underline">
+                Dismiss
+              </button>
+            </p>
+          )}
+
+          {isLoading && <p className="py-8 text-center text-muted">Loading your tasks...</p>}
+
+          {error && (
+            <div role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+              {errorMessage(error, 'Could not load your tasks.')}{' '}
+              <button onClick={() => refetch()} className="font-medium underline">
+                Try again
+              </button>
+            </div>
+          )}
+
+          {tasks && tasks.length === 0 && (
+            <div className="rounded-xl border border-dashed border-line-strong px-6 py-12 text-center">
+              {filtered ? (
+                <>
+                  <p className="font-medium">No tasks match these filters</p>
+                  <button onClick={() => setFilters(DEFAULT_FILTERS)} className="mt-2 text-sm font-medium text-accent hover:underline">
+                    Clear filters
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium">No tasks yet</p>
+                  <p className="mt-1 text-sm text-muted">Type a task above and press Enter to add it.</p>
+                </>
+              )}
+            </div>
+          )}
+
+          {tasks && tasks.length > 0 && (
+            <ul className="overflow-hidden rounded-xl border border-line bg-surface">
+              {tasks.map((task) => (
+                <TaskRow key={task.id} task={task} onEdit={(t) => setModal({ task: t })} onError={setBanner} />
+              ))}
+            </ul>
+          )}
         </div>
-
-        <FilterBar filters={filters} onChange={setFilters} />
-
-        {banner && (
-          <p role="alert" className="mb-4 flex items-center justify-between rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-            {banner}
-            <button onClick={() => setBanner('')} aria-label="Dismiss" className="ml-2 px-2 font-bold">
-              x
-            </button>
-          </p>
-        )}
-
-        {isLoading && <p className="text-slate-500">Loading tasks...</p>}
-
-        {error && (
-          <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-            {errorMessage(error, 'Could not load tasks')}{' '}
-            <button onClick={() => refetch()} className="font-medium underline">
-              Retry
-            </button>
-          </div>
-        )}
-
-        {tasks && tasks.length === 0 && (
-          <div className="rounded-xl border-2 border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700">
-            {filtered ? (
-              <>
-                <p className="mb-3">No tasks match your filters.</p>
-                <button
-                  onClick={() => setFilters(DEFAULT_FILTERS)}
-                  className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-                >
-                  Clear filters
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="mb-3">No tasks yet.</p>
-                <button onClick={() => setModal('new')} className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-                  Create your first task
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {tasks && tasks.length > 0 && (
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} onEdit={setModal} onError={setBanner} />
-            ))}
-          </ul>
-        )}
       </main>
-
-      <button
-        onClick={() => setModal('new')}
-        aria-label="New task"
-        className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center rounded-full bg-indigo-600 text-3xl text-white shadow-lg hover:bg-indigo-700 sm:hidden"
-      >
-        +
-      </button>
 
       {modal && (
         <TaskModal
-          key={modal === 'new' ? 'new' : modal.id}
-          task={modal === 'new' ? null : modal}
+          key={modal.task?.id ?? 'new'}
+          task={modal.task}
+          initialTitle={modal.title}
           onClose={closeModal}
         />
       )}

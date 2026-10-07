@@ -1,4 +1,6 @@
-# Task Manager
+# Bilbo
+
+[![CI](https://github.com/900Gang/Bilbo/actions/workflows/ci.yml/badge.svg)](https://github.com/900Gang/Bilbo/actions/workflows/ci.yml)
 
 A full-stack task management app. Users sign up, log in, and manage their own tasks. Each user only ever sees their own data.
 
@@ -86,7 +88,7 @@ All `/api/tasks` routes require a logged-in user.
 
 ```
 client/           React app
-  src/components  TaskCard, TaskModal, FilterBar, ThemeToggle, AuthForm, ProtectedRoute
+  src/components  TaskRow, QuickAdd, TaskModal, FilterBar, ThemeToggle, Logo, AuthForm, ProtectedRoute
   src/context     AuthContext
   src/hooks       useTasks, useTheme, useDebounce
   src/pages       Login, Register, Dashboard
@@ -151,6 +153,15 @@ cd server && npm test
 ```
 
 They cover registration, login and logout, input validation, task CRUD, search and filters, partial updates, and blocking one user from reading or changing another user's tasks.
+
+## Continuous integration
+
+GitHub Actions runs on every push to `main` and on every pull request (`.github/workflows/ci.yml`):
+
+- **Client:** install, lint, and production build.
+- **Server:** install, generate the Prisma client, type-check and build, and validate the schema.
+
+The workflow needs no database or secrets. The API tests are not part of CI because they use a real database. Run them locally with `npm test` in `server/`.
 
 ## Deployment
 

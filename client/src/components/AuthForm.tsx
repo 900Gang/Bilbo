@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { errorMessage } from '../lib/api'
+import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 const input =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
+  'mt-1 w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-ink outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/30'
 
 export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const { user, login, register } = useAuth()
@@ -34,60 +36,72 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   }
 
   return (
-    <div className="min-h-screen grid place-items-center bg-slate-50 p-4 dark:bg-slate-900">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800"
-      >
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-          {isLogin ? 'Welcome back' : 'Create account'}
-        </h1>
+    <div className="relative grid min-h-screen place-items-center bg-paper p-4">
+      <div className="absolute top-3 right-3">
+        <ThemeToggle />
+      </div>
 
-        {!isLogin && (
-          <label className="block text-sm text-slate-700 dark:text-slate-300">
-            Name
-            <input className={input} value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} autoComplete="name" />
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex justify-center">
+          <Logo size="lg" />
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-line bg-surface p-6 sm:p-8">
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">
+              {isLogin ? 'Welcome back' : 'Create your account'}
+            </h1>
+            <p className="mt-1 text-sm text-muted">
+              {isLogin ? 'Log in to pick up where you left off.' : 'Your tasks stay private to you.'}
+            </p>
+          </div>
+
+          {!isLogin && (
+            <label className="block text-sm font-medium">
+              Name
+              <input className={input} value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} autoComplete="name" />
+            </label>
+          )}
+          <label className="block text-sm font-medium">
+            Email
+            <input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
           </label>
-        )}
-        <label className="block text-sm text-slate-700 dark:text-slate-300">
-          Email
-          <input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-        </label>
-        <label className="block text-sm text-slate-700 dark:text-slate-300">
-          Password
-          <input
-            className={input}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={isLogin ? 1 : 8}
-            autoComplete={isLogin ? 'current-password' : 'new-password'}
-          />
-          {!isLogin && <span className="text-xs text-slate-500">At least 8 characters</span>}
-        </label>
+          <label className="block text-sm font-medium">
+            Password
+            <input
+              className={input}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={isLogin ? 1 : 8}
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+            />
+            {!isLogin && <span className="mt-1 block text-xs font-normal text-muted">Use at least 8 characters.</span>}
+          </label>
 
-        {error && (
-          <p role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+              {error}
+            </p>
+          )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
-        >
-          {busy ? 'Please wait...' : isLogin ? 'Log in' : 'Sign up'}
-        </button>
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-lg bg-accent py-2.5 font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:opacity-60"
+          >
+            {busy ? 'Please wait...' : isLogin ? 'Log in' : 'Create account'}
+          </button>
+        </form>
 
-        <p className="text-center text-sm text-slate-600 dark:text-slate-400">
-          {isLogin ? 'No account? ' : 'Already registered? '}
-          <Link to={isLogin ? '/register' : '/login'} className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-            {isLogin ? 'Sign up' : 'Log in'}
+        <p className="mt-6 text-center text-sm text-muted">
+          {isLogin ? 'New to Bilbo? ' : 'Already have an account? '}
+          <Link to={isLogin ? '/register' : '/login'} className="font-medium text-accent hover:underline">
+            {isLogin ? 'Create an account' : 'Log in'}
           </Link>
         </p>
-      </form>
+      </div>
     </div>
   )
 }

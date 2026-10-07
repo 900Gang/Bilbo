@@ -3,6 +3,6 @@ import { useAuth } from '../context/AuthContext'
 
 export default function ProtectedRoute() {
   const { user, loading } = useAuth()
-  if (loading) return <div className="min-h-screen grid place-items-center text-slate-500">Loading...</div>
+  if (loading) return <div className="grid min-h-screen place-items-center text-muted">Loading...</div>
   return user ? <Outlet /> : <Navigate to="/login" replace />
 }
